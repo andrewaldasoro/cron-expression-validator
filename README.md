@@ -10,7 +10,7 @@ cron-quartz-validator is a **Node.JS** library (support typescript) to validate 
 
 ## Usage
 
-**isValidCronExpression** method require _string_ (cron expression) as parameter and returns _boolean_ value
+**test** method require _string_ (cron expression) as parameter and returns _boolean_ value
 
 ```js
 import CronQuartz from "cron-quartz-validator";
