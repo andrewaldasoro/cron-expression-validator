@@ -20,7 +20,7 @@ const MINUTES_BOUNDARIES: [number, number] = SECONDS_BOUNDARIES;
 const HOURS_BOUNDARIES: [number, number] = [0, 23];
 const DAYS_OF_MONTH_BOUNDARIES: [number, number] = [1, 31];
 const MONTHS_BOUNDARIES: [number, number] = [1, 12];
-// const DAYS_OF_WEEK_BOUNDARIES: [number, number] = [1, 7]
+const DAYS_OF_WEEK_BOUNDARIES: [number, number] = [1, 7];
 const YEARS_BOUNDARIES: [number, number] = [1970, 2199];
 
 export class CronQuartz {
@@ -148,7 +148,7 @@ export class CronQuartz {
     const testLimit = (_expr: string) => {
       if (this.testBoundaries(_expr, DAYS_OF_MONTH_BOUNDARIES)) return true;
 
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
     };
 
     if (expression === "*") {
@@ -176,41 +176,35 @@ export class CronQuartz {
       const values = expression.split("/");
 
       if (values.length !== 2)
-        return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+        return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
 
       if (this.filterInt(values[0]) >= this.filterInt(values[1]))
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       if (this.testDayOfMonth(values[0])) return testLimit(values[1]);
 
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
     }
 
     if (expression.includes("-")) {
       const values = expression.split("-");
 
       if (values.length !== 2)
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       if (values[1].toLowerCase() === "l")
-        return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+        return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
 
       if (this.testDayOfMonth(values[0])) return testLimit(values[1]);
 
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
     }
 
     if (expression.includes(",")) {
       const values = expression.split(",");
 
       if (!values.every((v) => this.testTime(v, DAYS_OF_MONTH_BOUNDARIES)))
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       return true;
     }
@@ -223,7 +217,7 @@ export class CronQuartz {
       if (this.testBoundaries(_expr, MONTHS_BOUNDARIES)) return true;
       if (MONTHS.includes(_expr.toLowerCase())) return true;
 
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
     };
 
     if (expression === "*") return true;
@@ -232,257 +226,165 @@ export class CronQuartz {
       const values = expression.split("/");
 
       if (values.length !== 2)
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       if (this.filterInt(values[0]) >= this.filterInt(values[1]))
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       if (this.testMonth(values[0])) return testLimit(values[1]);
-    }
-
-    if (expression.includes("-")) {
-      const monthRangeArr = expression.split("-");
-      if (
-        !isNaN(this.filterInt(monthRangeArr[0])) &&
-        !isNaN(this.filterInt(monthRangeArr[1])) &&
-        !this.isValidMonthNo(monthRangeArr, 1, 12)
-      ) {
-        this._errors.push(CronQuartz.ERROR.MONTH.RANGE);
-      }
-      if (
-        isNaN(this.filterInt(monthRangeArr[0])) &&
-        isNaN(this.filterInt(monthRangeArr[1])) &&
-        !this.isValidMonthStr(monthRangeArr, MONTHS)
-      ) {
-        this._errors.push(CronQuartz.ERROR.MONTH.SYNTAX);
-      }
-      return !isNaN(this.filterInt(monthRangeArr[0])) &&
-        !isNaN(this.filterInt(monthRangeArr[1]))
-        ? this.isValidMonthNo(monthRangeArr, 1, 12)
-        : this.isValidMonthStr(monthRangeArr, MONTHS);
-    } else if (expression.includes(",")) {
-      const multiMonthArr = expression.split(",");
-      if (
-        !isNaN(this.filterInt(multiMonthArr[0])) &&
-        !this.isValidMonthNo(multiMonthArr, 1, 12)
-      ) {
-        this._errors.push(CronQuartz.ERROR.MONTH.RANGE);
-      }
-      if (
-        isNaN(this.filterInt(multiMonthArr[0])) &&
-        !this.isValidMonthStr(multiMonthArr, MONTHS)
-      ) {
-        this._errors.push(CronQuartz.ERROR.MONTH.SYNTAX);
-      }
-      return !isNaN(this.filterInt(multiMonthArr[0]))
-        ? this.isValidMonthNo(multiMonthArr, 1, 12)
-        : this.isValidMonthStr(multiMonthArr, MONTHS);
-    } else if (typeof expression === "string") {
-      if (
-        !isNaN(this.filterInt(expression)) &&
-        !this.isValidMonthNo([expression], 1, 12)
-      ) {
-        this._errors.push(CronQuartz.ERROR.MONTH.RANGE);
-      }
-      if (
-        isNaN(this.filterInt(expression)) &&
-        !this.isValidMonthStr([expression], MONTHS)
-      ) {
-        this._errors.push(CronQuartz.ERROR.MONTH.SYNTAX);
-      }
-      return !isNaN(this.filterInt(expression))
-        ? this.isValidMonthNo([expression], 1, 12)
-        : this.isValidMonthStr([expression], MONTHS);
-    } else {
-      this._errors.push(CronQuartz.ERROR.MONTH.SYNTAX);
-      return false;
-    }
-  }
-
-  testDayOfWeek(dayOfWeek: string, dayOfMonth?: string) {
-    if (
-      (dayOfWeek === "*" && dayOfMonth !== "*") ||
-      (dayOfWeek === "?" && dayOfMonth !== "?")
-    ) {
-      return true;
-    }
-    if (dayOfWeek.toLowerCase() === "l") {
-      return true;
-    }
-    if (dayOfWeek === "*") {
-      return dayOfMonth !== "*";
-    } else if (dayOfWeek.includes("/") && dayOfMonth === "?") {
-      const startingDayOfWeekOptionArr = dayOfWeek.split("/");
-      if (!this.isValidMonthNo([startingDayOfWeekOptionArr[0]], 1, 7)) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.OUT_OF_RANGE);
-      }
-      if (!this.isValidMonthNo([startingDayOfWeekOptionArr[1]], 0, 7)) {
-        this._errors.push(
-          "Expression " +
-            startingDayOfWeekOptionArr[1] +
-            " is not a valid increment value. Accepted values are 0-7"
-        );
-      }
-      return (
-        this.isValidMonthNo([startingDayOfWeekOptionArr[0]], 1, 7) &&
-        this.isValidMonthNo([startingDayOfWeekOptionArr[1]], 0, 7)
-      );
-    } else if (dayOfWeek.includes("-") && dayOfMonth === "?") {
-      const dayOfWeekRangeArr = dayOfWeek.split("-");
-      if (
-        !isNaN(this.filterInt(dayOfWeekRangeArr[0])) &&
-        !isNaN(this.filterInt(dayOfWeekRangeArr[1])) &&
-        !this.isValidMonthNo(dayOfWeekRangeArr, 1, 7)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.OUT_OF_RANGE);
-      }
-      if (
-        isNaN(this.filterInt(dayOfWeekRangeArr[0])) &&
-        isNaN(this.filterInt(dayOfWeekRangeArr[1])) &&
-        !this.isValidMonthStr(dayOfWeekRangeArr, DAYS_OF_WEEK)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.SYNTAX);
-      }
-      return !isNaN(this.filterInt(dayOfWeekRangeArr[0])) &&
-        !isNaN(this.filterInt(dayOfWeekRangeArr[1]))
-        ? this.isValidMonthNo(dayOfWeekRangeArr, 1, 7)
-        : this.isValidMonthStr(dayOfWeekRangeArr, DAYS_OF_WEEK);
-    } else if (dayOfWeek.includes(",") && dayOfMonth === "?") {
-      const multiDayOfWeekArr = dayOfWeek.split(",");
-      if (
-        !isNaN(this.filterInt(multiDayOfWeekArr[0])) &&
-        !this.isValidMonthNo(multiDayOfWeekArr, 1, 7)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.OUT_OF_RANGE);
-      }
-      if (
-        isNaN(this.filterInt(multiDayOfWeekArr[0])) &&
-        !this.isValidMonthStr(multiDayOfWeekArr, DAYS_OF_WEEK)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.SYNTAX);
-      }
-      return !isNaN(this.filterInt(multiDayOfWeekArr[0]))
-        ? this.isValidMonthNo(multiDayOfWeekArr, 1, 7)
-        : this.isValidMonthStr(multiDayOfWeekArr, DAYS_OF_WEEK);
-    } else if (dayOfWeek.includes("#") && dayOfMonth === "?") {
-      const weekdayOfMonthArr = dayOfWeek.split("#");
-      if (!this.isValidMonthNo([weekdayOfMonthArr[0]], 1, 7)) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.SYNTAX2);
-      }
-      if (!this.isValidMonthNo([weekdayOfMonthArr[1]], 1, 5)) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.HASHTAG);
-      }
-      return (
-        this.isValidMonthNo([weekdayOfMonthArr[0]], 1, 7) &&
-        this.isValidMonthNo([weekdayOfMonthArr[1]], 1, 5)
-      );
-    } else if (typeof dayOfWeek === "string" && dayOfMonth === "?") {
-      if (
-        !isNaN(this.filterInt(dayOfWeek)) &&
-        !this.isValidMonthNo([dayOfWeek], 1, 7)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.OUT_OF_RANGE);
-      }
-      if (
-        isNaN(this.filterInt(dayOfWeek)) &&
-        !this.isValidMonthStr([dayOfWeek], DAYS_OF_WEEK)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.SYNTAX);
-      }
-      return !isNaN(this.filterInt(dayOfWeek))
-        ? this.isValidMonthNo([dayOfWeek], 1, 7)
-        : this.isValidMonthStr([dayOfWeek], DAYS_OF_WEEK);
-    } else {
-      if (
-        this.isInvalidValues(dayOfWeek, dayOfMonth) &&
-        !this.isHasErrorMsg(this._errors)
-      ) {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_MONTH_DAY_OF_WEEK_MSG);
-      } else {
-        this._errors.push(CronQuartz.ERROR.DAY_OF_WEEK.SYNTAX + " or * or /");
-      }
-      return false;
-    }
-  }
-
-  testYear(expression: string) {
-    YEARS_BOUNDARIES[0] = new Date().getFullYear();
-    return this.testTime(expression, YEARS_BOUNDARIES);
-  }
-
-  private isValidMonthNo(monthArr: string[], val: number, endVal: number) {
-    return monthArr.every((month) => {
-      return this.filterInt(month) >= val && this.filterInt(month) <= endVal;
-    });
-  }
-
-  private isValidMonthStr(monthArr: string[], dataArr: string[]) {
-    return monthArr.every((month) => {
-      return dataArr.includes(month.toLowerCase());
-    });
-  }
-
-  private isInvalidValues(dayOfWeek?: string, dayOfMonth?: string) {
-    const isAll = dayOfWeek === "*" && dayOfMonth === "*";
-    const isAny = dayOfWeek === "?" && dayOfMonth === "?";
-    return isAll || isAny;
-  }
-
-  private isHasErrorMsg(array: string[]) {
-    return array.includes(CronQuartz.ERROR.DAY_OF_MONTH_DAY_OF_WEEK_MSG);
-  }
-
-  private testTime(expression: string, boundaries: [number, number]) {
-    const testLimit = (_expr: string) => {
-      if (this.testBoundaries(_expr, boundaries)) return true;
-
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
-    };
-
-    if (expression === "*") return true;
-
-    if (expression.includes("/")) {
-      const values = expression.split("/");
-
-      if (values.length !== 2)
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
-
-      if (this.filterInt(values[0]) >= this.filterInt(values[1]))
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
-
-      if (this.testTime(values[0], boundaries)) return testLimit(values[1]);
-
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
     }
 
     if (expression.includes("-")) {
       const values = expression.split("-");
 
       if (values.length !== 2)
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (this.testMonth(values[0])) return testLimit(values[1]);
+
+      return this.falseWithError(CronQuartz.ERROR.MONTH.SYNTAX);
+    }
+
+    if (expression.includes(",")) {
+      const values = expression.split(",");
+
+      if (!values.every((v) => this.testMonth(v)))
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      return true;
+    }
+
+    return testLimit(expression);
+  }
+
+  testDayOfWeek(expression: string) {
+    const testLimit = (_expr: string) => {
+      if (this.testBoundaries(_expr, MONTHS_BOUNDARIES)) return true;
+      if (DAYS_OF_WEEK.includes(_expr.toLowerCase())) return true;
+
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+    };
+
+    if (expression === "*") {
+      if (this.dayOfMonth === "*") return false;
+
+      return true;
+    }
+
+    if (expression === "?") {
+      if (this.dayOfMonth === "?") return false;
+
+      return true;
+    }
+
+    if (expression.toLowerCase() === "l") return true;
+
+    for (let i = 0; i < DAYS_OF_WEEK.length + 1; i++) {
+      if (expression.toLowerCase() === `${i}l`) {
+        return true;
+      }
+    }
+
+    if (expression.includes("#")) {
+      const values = expression.split("#").map((e) => this.filterInt(e));
+
+      if (values.length !== 2)
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (isNaN(values[0]) || isNaN(values[1]))
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (
+        values[0] < DAYS_OF_WEEK_BOUNDARIES[0] ||
+        values[0] > DAYS_OF_MONTH_BOUNDARIES[1]
+      )
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (values[1] < 0 || values[1] > 5)
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      return true;
+    }
+
+    if (expression.includes("/")) {
+      const values = expression.split("/");
+
+      if (values.length !== 2)
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (this.filterInt(values[0]) >= this.filterInt(values[1]))
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (this.testDayOfWeek(values[0])) return testLimit(values[1]);
+    }
+
+    if (expression.includes("-")) {
+      const values = expression.split("-");
+
+      if (values.length !== 2)
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (this.testDayOfWeek(values[0])) return testLimit(values[1]);
+
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_WEEK.SYNTAX);
+    }
+
+    if (expression.includes(",")) {
+      const values = expression.split(",");
+
+      if (!values.every((v) => this.testMonth(v)))
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      return true;
+    }
+
+    return testLimit(expression);
+  }
+
+  testYear(expression: string) {
+    // YEARS_BOUNDARIES[0] = new Date().getFullYear(); // Uncomment to validate actual year
+    return this.testTime(expression, YEARS_BOUNDARIES);
+  }
+
+  private testTime(expression: string, boundaries: [number, number]) {
+    const testLimit = (_expr: string) => {
+      if (this.testBoundaries(_expr, boundaries)) return true;
+
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+    };
+
+    if (expression === "*") return true;
+
+    if (expression.includes("/")) {
+      const values = expression.split("/");
+
+      if (values.length !== 2)
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (this.filterInt(values[0]) >= this.filterInt(values[1]))
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       if (this.testTime(values[0], boundaries)) return testLimit(values[1]);
 
-      return this.malformedReturn(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
+    }
+
+    if (expression.includes("-")) {
+      const values = expression.split("-");
+
+      if (values.length !== 2)
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
+
+      if (this.testTime(values[0], boundaries)) return testLimit(values[1]);
+
+      return this.falseWithError(CronQuartz.ERROR.DAY_OF_MONTH.OUT_OF_RANGE);
     }
 
     if (expression.includes(",")) {
       const values = expression.split(",");
 
       if (!values.every((v) => this.testTime(v, boundaries)))
-        return this.malformedReturn(
-          CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION
-        );
+        return this.falseWithError(CronQuartz.ERROR.MALFORMED.WRONG_EXPRESSION);
 
       return true;
     }
@@ -494,7 +396,7 @@ export class CronQuartz {
     return this.filterInt(v) >= min && this.filterInt(v) <= max;
   }
 
-  private malformedReturn(error: string) {
+  private falseWithError(error: string) {
     this._errors.push(error);
     return false;
   }
@@ -509,17 +411,17 @@ export class CronQuartz {
 }
 
 // TO TEST
-const readline = require("readline").createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-promptExpression();
+// const readline = require("readline").createInterface({
+//   input: process.stdin,
+//   output: process.stdout,
+// });
+// promptExpression();
 
-function promptExpression() {
-  return readline.question("test quartz expression: ", (answer: string) => {
-    const cronValidator = new CronQuartz();
-    console.log(cronValidator.test(answer));
+// function promptExpression() {
+//   return readline.question("test quartz expression: ", (answer: string) => {
+//     const cronValidator = new CronQuartz();
+//     console.log(cronValidator.test(answer));
 
-    promptExpression();
-  });
-}
+//     promptExpression();
+//   });
+// }
