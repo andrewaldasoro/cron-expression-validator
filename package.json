@@ -1,6 +1,6 @@
 {
   "name": "cron-quartz-validator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "cron quartz expression validator",
   "main": "index.js",
   "scripts": {
