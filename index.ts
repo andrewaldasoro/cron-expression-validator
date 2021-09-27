@@ -1,3 +1,7 @@
+interface CronQuartzOptions {
+  verbose: boolean;
+};
+
 const MONTHS = [
   "jan",
   "feb",
@@ -86,8 +90,12 @@ export class CronQuartz {
     },
   };
 
-  constructor(expression?: string) {
+  constructor(expression?: string, options?: CronQuartzOptions) {
     if (expression) this.test(expression);
+
+    if (options && options.verbose === true) {
+      this._verbose = true;
+    }
   }
 
   test(
